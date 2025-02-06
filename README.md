@@ -8,7 +8,7 @@ This simple script (partially LLM-generated) removes black borders around relati
 For simple cropping of scans with dark edges, please refer to [remove_black_borders](https://github.com/loglux/remove_black_borders/) by [loglux](https://github.com/loglux). 
 
 ### Limits of the script
-Darker image content, such as brown leather bindings, is currently deleted as it is identified as a dark area. It is planned to adapt the code so that dark areas are always defined in relation to the brightness threshold in the centre of the image. A makeshift solution is to experiment with the threshold values in the script. It is also planned to smooth the edges of the document, as the dark areas will be removed pixel by pixel. 
+Darker image content, such as brown leather bindings, is currently deleted as it is identified as a dark area. It is planned to adapt the code so that dark areas are always defined in relation to the brightness threshold in the centre of the image. A makeshift solution is to experiment with the threshold values in the script. 
 
 ## Prerequisites
 
