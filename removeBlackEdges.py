@@ -12,30 +12,33 @@ import numpy as np
 from PIL import Image
 
 def is_connected_to_three_borders(contour, img_shape):
-    """Überprüft, ob die Kontur mit mindestens drei verschiedenen Bildrändern verbunden ist."""
-    height, width = img_shape[:2]  # Nur Höhe und Breite extrahieren
-    borders_touched = set()  # Verwende ein Set, um die berührten Ränder zu speichern
+    """Checks if the contour is connected to at least three different image borders."""
+    height, width = img_shape[:2]  # Extract height and width only
+    borders_touched = set()  # Use a set to store touched borders
 
     for point in contour:
         x, y = point[0]
-        if x == 0:  # Linker Rand
+        if x == 0:  # Left border
             borders_touched.add('left')
-        elif x == width - 1:  # Rechter Rand
+        elif x == width - 1:  # Right border
             borders_touched.add('right')
-        elif y == 0:  # Oberer Rand
+        elif y == 0:  # Top border
             borders_touched.add('top')
-        elif y == height - 1:  # Unterer Rand
+        elif y == height - 1:  # Bottom border
             borders_touched.add('bottom')
 
-        # Wenn bereits drei Ränder berührt werden, können wir abbrechen
+        # If two borders are already touched, we can break
         if len(borders_touched) >= 2:
             return True
 
     return False
-    
-    #blur_radius muss ungerade und positiv sein (umso höher, desto mehr wird vom Dokument amgeschnitten)
+
 def make_transparent(input_image_path, output_image_path, threshold=100, min_contour_area=100, alpha_value=128, blur_radius=3):
-    # Bild mit OpenCV laden
+    # Check if the blur_radius is valid
+    if blur_radius <= 0 or blur_radius % 2 == 0:
+        raise ValueError("blur_radius must be a positive odd number.")
+
+    # Load image with OpenCV
     img = cv2.imread(input_image_path)
     if img is None:
         print(f"Error loading image: {input_image_path}")
@@ -43,35 +46,35 @@ def make_transparent(input_image_path, output_image_path, threshold=100, min_con
 
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-    # Schwellenwert anwenden, um ein binäres Bild zu erstellen
+    # Apply threshold to create a binary image
     _, binary = cv2.threshold(gray, threshold, 255, cv2.THRESH_BINARY_INV)
 
-    # Konturen finden
+    # Find contours
     contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-    # Erstelle eine Maske für das gesamte Bild
-    mask = np.zeros_like(gray)  # Maske mit schwarzen Pixeln (0)
+    # Create a mask for the entire image
+    mask = np.zeros_like(gray)  # Mask with black pixels (0)
 
-    # Fülle die Konturen, die die Bedingung erfüllen
+    # Fill the contours that meet the condition
     if contours:
         filtered_contours = [cnt for cnt in contours if cv2.contourArea(cnt) > min_contour_area]
         for contour in filtered_contours:
             if is_connected_to_three_borders(contour, img.shape):
                 cv2.drawContours(mask, [contour], -1, (255), thickness=cv2.FILLED)
 
-    # Wende Gaussian Blur auf die Maske an, um die Kanten zu glätten
+    # Apply Gaussian Blur to the mask to smooth the edges
+    # The blur_radius must be a positive odd number; larger values will cut off more of the document
     mask = cv2.GaussianBlur(mask, (blur_radius, blur_radius), 0)
 
-    # Erstelle ein neues Bild mit Transparenz
+    # Create a new image with transparency
     img_rgba = cv2.cvtColor(img, cv2.COLOR_BGR2RGBA)
-    img_rgba[:, :, 3] = 255  # Setze Alpha-Kanal auf 255 (vollständig sichtbar)
+    img_rgba[:, :, 3] = 255  # Set alpha channel to 255 (fully visible)
 
-    # Setze die Pixel innerhalb der Kontur auf transparent
-    img_rgba[mask > 0] = (255, 255, 255, alpha_value)  # Setze Alpha-Wert auf alpha_value
+    # Set the pixels within the contour to transparent
+    img_rgba[mask > 0] = (255, 255, 255, alpha_value)  # Set alpha value
 
-    # Speichere das Bild
+    # Save the image
     Image.fromarray(img_rgba).save(output_image_path, "PNG")
-
 
 def process_images(input_directory, output_directory, threshold=100, min_contour_area=100):
     if not os.path.exists(output_directory):
@@ -84,7 +87,7 @@ def process_images(input_directory, output_directory, threshold=100, min_contour
             make_transparent(input_image_path, output_image_path, threshold, min_contour_area)
             print(f"Processed: {filename} -> op_{filename}")
 
-# Beispielaufruf
+# Example call
 input_dir = "input"  
 output_dir = "output"  
 process_images(input_dir, output_dir, threshold=100, min_contour_area=100)
