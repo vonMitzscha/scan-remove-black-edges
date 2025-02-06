@@ -32,8 +32,9 @@ def is_connected_to_three_borders(contour, img_shape):
             return True
 
     return False
-
-def make_transparent(input_image_path, output_image_path, threshold=100, min_contour_area=100):
+    
+    #blur_radius muss ungerade und positiv sein (umso höher, desto mehr wird vom Dokument amgeschnitten)
+def make_transparent(input_image_path, output_image_path, threshold=100, min_contour_area=100, alpha_value=128, blur_radius=3):
     # Bild mit OpenCV laden
     img = cv2.imread(input_image_path)
     if img is None:
@@ -58,15 +59,19 @@ def make_transparent(input_image_path, output_image_path, threshold=100, min_con
             if is_connected_to_three_borders(contour, img.shape):
                 cv2.drawContours(mask, [contour], -1, (255), thickness=cv2.FILLED)
 
+    # Wende Gaussian Blur auf die Maske an, um die Kanten zu glätten
+    mask = cv2.GaussianBlur(mask, (blur_radius, blur_radius), 0)
+
     # Erstelle ein neues Bild mit Transparenz
     img_rgba = cv2.cvtColor(img, cv2.COLOR_BGR2RGBA)
     img_rgba[:, :, 3] = 255  # Setze Alpha-Kanal auf 255 (vollständig sichtbar)
 
     # Setze die Pixel innerhalb der Kontur auf transparent
-    img_rgba[mask == 255] = (255, 255, 255, 0)  # Transparent
+    img_rgba[mask > 0] = (255, 255, 255, alpha_value)  # Setze Alpha-Wert auf alpha_value
 
     # Speichere das Bild
     Image.fromarray(img_rgba).save(output_image_path, "PNG")
+
 
 def process_images(input_directory, output_directory, threshold=100, min_contour_area=100):
     if not os.path.exists(output_directory):
