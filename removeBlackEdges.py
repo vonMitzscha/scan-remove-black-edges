@@ -33,7 +33,7 @@ def is_connected_to_three_borders(contour, img_shape):
 
     return False
 
-def make_transparent(input_image_path, output_image_path, threshold=100, min_contour_area=100, alpha_value=128, blur_radius=3):
+def make_transparent(input_image_path, output_image_path, threshold=100, min_contour_area=100, alpha_value=255, blur_radius=3, edge_blur_radius=5):
     # Check if the blur_radius is valid
     if blur_radius <= 0 or blur_radius % 2 == 0:
         raise ValueError("blur_radius must be a positive odd number.")
@@ -63,19 +63,25 @@ def make_transparent(input_image_path, output_image_path, threshold=100, min_con
                 cv2.drawContours(mask, [contour], -1, (255), thickness=cv2.FILLED)
 
     # Apply Gaussian Blur to the mask to smooth the edges
-    # The blur_radius must be a positive odd number; larger values will cut off more of the document
     mask = cv2.GaussianBlur(mask, (blur_radius, blur_radius), 0)
+
+    # Weichzeichnen der Kanten der Maske
+    mask = cv2.GaussianBlur(mask, (edge_blur_radius, edge_blur_radius), 0)
 
     # Create a new image with transparency
     img_rgba = cv2.cvtColor(img, cv2.COLOR_BGR2RGBA)
     img_rgba[:, :, 3] = 255  # Set alpha channel to 255 (fully visible)
 
     # Set the pixels within the contour to transparent
-    img_rgba[mask > 0] = (255, 255, 255, alpha_value)  # Set alpha value
+    img_rgba[mask > 0] = (255, 255, 255, 0)  # Set alpha to 0 for transparent areas
+
+    # Set the alpha for non-masked areas to 255 (fully visible)
+    img_rgba[mask == 0, 3] = 255  # Set alpha to 255 for visible areas
 
     # Save the image
     Image.fromarray(img_rgba).save(output_image_path, "PNG")
-
+ 
+    
 def process_images(input_directory, output_directory, threshold=100, min_contour_area=100):
     if not os.path.exists(output_directory):
         os.makedirs(output_directory)
