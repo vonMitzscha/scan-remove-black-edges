@@ -32,17 +32,18 @@ def is_connected_to_three_borders(contour, img_shape):
 
     return False
 
-def feather_alpha_channel(alpha, feather_radius=10):
+def feather_alpha_channel(alpha, feather_radius=10, mask_reduction_iterations=2):
     """Verkleinert die Maske leicht, bevor der Weichzeichner angewendet wird, um dunkle Kanten zu vermeiden."""
     kernel_size = (feather_radius * 2 + 1, feather_radius * 2 + 1)
     
     # Maske vorher leicht verkleinern
-    alpha = cv2.erode(alpha, np.ones((3,3), np.uint8), iterations=1)
+    alpha = cv2.erode(alpha, np.ones((3, 3), np.uint8), iterations=mask_reduction_iterations)
 
     # Dann weichzeichnen
     blurred_alpha = cv2.GaussianBlur(alpha, kernel_size, 0)
     
     return blurred_alpha
+
 
 
 
